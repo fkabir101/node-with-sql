@@ -66,7 +66,7 @@ function beginPrompt() {
       choices: function() {
         let choiceArray = [];
         for (let i = 0; i < result.length; i++) {
-          choiceArray.push(result[i].item_id.toString());
+          choiceArray.push(result[i].product_name.toString());
         }
         return choiceArray;
       },
@@ -79,44 +79,60 @@ function beginPrompt() {
       }
     
     ]).then(function (answer) {
-      const answerId = parseInt(answer.item);
       const answerStock = parseInt(answer.stock);
-      checkStock(answerId, answerStock);
+      checkStock(answer.item, answerStock);
     })
   })
   
 }
 
 // Check if there is enough stock
-function checkStock(id, stockBought){
-  db.query("SELECT * FROM products WHERE?",{item_id : id} ,function (err, result) {
+function checkStock(name, stockBought){
+  db.query("SELECT * FROM products WHERE?",{product_name : name} ,function (err, result) {
     let remainingStock = result[0].stock_quantity - stockBought;
     let totalCost = (result[0].price * stockBought).toFixed(2);
     if(err) throw err;
     if(result[0].stock_quantity >= stockBought){
       console.log(`You Just Bought ${stockBought} ${result[0].product_name}`);
       console.log(`Your total: ${totalCost}`);
-      updateStock(id, remainingStock);
+      updateStock(name, remainingStock);
     }
     else{
       console.log("Not Enough Stock");
     }
-    endApp();
+    runAgain();
   })
 }
 
-function updateStock(id, remainingStock){
+function updateStock(name, remainingStock){
   db.query("UPDATE products SET? WHERE ?",
   [
     {
       stock_quantity : remainingStock
     },
     {
-      item_id : id
+      product_name: name
     }
   ])
 }
 
+function runAgain(){
+  inquirer.prompt([
+    {
+    name: "again",
+    type: "list",
+    choices: ["Yes", "No"],
+    message: "What would you like to buy something else?"
+    }
+  ]).then(function ({again}) {
+    if(again === "Yes"){
+      start()
+    }
+    else{
+      endApp();
+    }
+  })
+}
 // End Connection
 function endApp(){
   db.end();
